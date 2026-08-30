@@ -1,0 +1,12 @@
+services:
+  - type: web
+    name: growchatbot
+    runtime: python
+    plan: free
+    buildCommand: ./build.sh
+    startCommand: streamlit run code/app.py --server.address 0.0.0.0 --server.port $PORT --server.headless true
+    envVars:
+      - key: PYTHON_VERSION
+        value: "3.11.6"
+      - key: MISTRAL_API_KEY
+        sync: false
