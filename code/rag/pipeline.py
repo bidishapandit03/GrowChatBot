@@ -7,6 +7,7 @@ unvalidated Mistral answer never reaches the user.
 
 from __future__ import annotations
 
+import logging
 from dataclasses import dataclass
 from typing import Callable
 
@@ -24,6 +25,8 @@ from code.rag.retriever import (
     RetrievalResult,
 )
 from code.rag.validator import ValidationError, validate_answer
+
+LOGGER = logging.getLogger("rag.pipeline")
 
 MESSAGE_UNABLE_TO_ANSWER = (
     "Sorry, I could not generate a verified answer from the approved pages. "
@@ -63,6 +66,7 @@ def answer(question: str, retriever: Retriever | None = None, generate_fn: Calla
     """Run the full online path and return either a grounded answer or a safe fallback."""
     retriever = retriever or Retriever()
     result = retriever.retrieve(question)
+    LOGGER.info("decision=%s evidence=%d conflicts=%d", result.decision, len(result.evidence), len(result.conflicts))
 
     if result.decision == DECISION_FOUND and result.conflicts:
         return AnswerResult(question, result, _conflict_answer(result), grounded=False)
@@ -72,12 +76,14 @@ def answer(question: str, retriever: Retriever | None = None, generate_fn: Calla
             messages = build_messages(result.question, result.evidence)
             raw = generate_fn(messages)
             validated = validate_answer(raw, result.evidence)
-        except (GenerationError, ValidationError):
+        except (GenerationError, ValidationError) as exc:
+            LOGGER.info("generation or validation failed: %s", exc)
             return AnswerResult(question, result, MESSAGE_UNABLE_TO_ANSWER, grounded=False)
         answer_text = (
             f"{validated.answer}\nSource: {validated.source}\n"
             f"Last updated from sources: {validated.last_updated}"
         )
+        LOGGER.info("grounded answer generated: %d chars", len(answer_text))
         return AnswerResult(question, result, answer_text, grounded=True)
 
     if result.decision == DECISION_NOT_FOUND:

@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+import os
 import threading
 from dataclasses import dataclass
 from pathlib import Path
@@ -12,6 +13,11 @@ import numpy as np
 from code.config import EMBEDDING_MODEL, EMBEDDINGS_DIR, source_slug
 from code.ingestion.chunker import ChunkRecord
 from code.ingestion.cleaner import normalize_whitespace
+
+# Keep memory low on small containers (e.g. Render free tier) and avoid tokenizer
+# thread races. These must be set before the model is first created.
+os.environ.setdefault("TOKENIZERS_PARALLELISM", "false")
+os.environ.setdefault("OMP_NUM_THREADS", "1")
 
 EMBED_BATCH_SIZE = 16
 
@@ -37,6 +43,12 @@ def get_embedder():
                 try:
                     from sentence_transformers import SentenceTransformer
 
+                    try:
+                        import torch
+
+                        torch.set_num_threads(1)
+                    except Exception:
+                        pass
                     _model = SentenceTransformer(EMBEDDING_MODEL)
                 except Exception as exc:
                     raise EmbeddingError(

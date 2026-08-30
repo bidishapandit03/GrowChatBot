@@ -7,6 +7,7 @@ citation, freshness label, and safety notices.
 
 from __future__ import annotations
 
+import logging
 import re
 import sys
 from pathlib import Path
@@ -87,8 +88,18 @@ def _render_message(entry: dict) -> None:
             st.error("The approved pages contain conflicting values; no single figure was chosen.")
 
 
+_MESSAGE_OPERATIONAL_ERROR = (
+    "Sorry, something went wrong while answering. Please try again in a moment."
+)
+
+
 def _process(question: str) -> dict:
-    result = answer(question)
+    try:
+        result = answer(question)
+    except Exception:
+        logging.getLogger("ui").exception("pipeline failed for question")
+        return {"role": "assistant", "question": question, "answer": _MESSAGE_OPERATIONAL_ERROR,
+                "grounded": False, "evidence": False, "conflicts": False, "result": None}
     return {
         "role": "assistant",
         "question": question,
