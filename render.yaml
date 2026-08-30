@@ -4,7 +4,7 @@ services:
     runtime: python
     plan: free
     buildCommand: ./build.sh
-    startCommand: streamlit run code/app.py --server.address 0.0.0.0 --server.port $PORT --server.headless true
+    startCommand: ./start.sh
     envVars:
       - key: PYTHON_VERSION
         value: "3.11.6"
