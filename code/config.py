@@ -51,6 +51,9 @@ APPROVED_SOURCES = [
 ]
 
 EMBEDDING_MODEL = "sentence-transformers/all-MiniLM-L6-v2"
+# Hugging Face cache lives inside the repo so it is included in the deployed build
+# artifact (Render free tier does not preserve caches outside the project directory).
+HF_CACHE_DIR = ROOT_DIR / ".hfcache"
 CHUNK_SIZE_TOKENS = (300, 500)
 CHUNK_OVERLAP_TOKENS = (50, 75)
 TOP_K = 4

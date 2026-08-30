@@ -25,3 +25,6 @@ data/embeddings/*
 data/chroma/*
 !data/chroma/.gitkeep
 !data/**/.gitkeep
+
+# Hugging Face model cache (built at deploy time, never committed)
+.hfcache/

@@ -10,9 +10,14 @@ from pathlib import Path
 
 import numpy as np
 
-from code.config import EMBEDDING_MODEL, EMBEDDINGS_DIR, source_slug
+from code.config import EMBEDDING_MODEL, EMBEDDINGS_DIR, HF_CACHE_DIR, source_slug
 from code.ingestion.chunker import ChunkRecord
 from code.ingestion.cleaner import normalize_whitespace
+
+# Keep the model cache inside the project so it is part of the deployed build and the
+# app never tries to download it at runtime. Must be set before the model is created.
+os.environ["HF_HOME"] = str(HF_CACHE_DIR)
+os.environ["HF_HUB_CACHE"] = str(HF_CACHE_DIR / "hub")
 
 # Keep memory low on small containers (e.g. Render free tier) and avoid tokenizer
 # thread races. These must be set before the model is first created.
@@ -41,6 +46,8 @@ def get_embedder():
         with _model_lock:
             if _model is None:
                 try:
+                    import socket
+
                     from sentence_transformers import SentenceTransformer
 
                     try:
@@ -49,7 +56,14 @@ def get_embedder():
                         torch.set_num_threads(1)
                     except Exception:
                         pass
-                    _model = SentenceTransformer(EMBEDDING_MODEL)
+                    # Bound any network stall during model download/load so a missing
+                    # cache surfaces as an error instead of an infinite spinner.
+                    previous_timeout = socket.getdefaulttimeout()
+                    socket.setdefaulttimeout(60)
+                    try:
+                        _model = SentenceTransformer(EMBEDDING_MODEL)
+                    finally:
+                        socket.setdefaulttimeout(previous_timeout)
                 except Exception as exc:
                     raise EmbeddingError(
                         f"Failed to load embedding model {EMBEDDING_MODEL}: {exc}"
