@@ -1,0 +1,24 @@
+# Secrets
+.env
+.streamlit/secrets.toml
+
+# Python
+.venv/
+venv/
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.mypy_cache/
+
+# Generated corpus and index (keep folder placeholders)
+data/raw/html/*
+!data/raw/html/.gitkeep
+data/raw/documents/*
+!data/raw/documents/.gitkeep
+data/chunks/*
+!data/chunks/.gitkeep
+data/embeddings/*
+!data/embeddings/.gitkeep
+data/chroma/*
+!data/chroma/.gitkeep
+!data/**/.gitkeep
