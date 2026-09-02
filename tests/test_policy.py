@@ -66,6 +66,24 @@ def test_blocks_advice():
         assert decision.message
 
 
+def test_blocks_generic_opinion_questions():
+    for sample in (
+        "Should I go out?",
+        "Is it a good idea to invest?",
+        "Do you think I should switch jobs?",
+        "Would you recommend buying more?",
+        "What should I do with my savings?",
+    ):
+        decision = classify_intent(sample)
+        assert decision.query_class == QueryClass.ADVICE
+        assert decision.blocked is True
+        assert decision.message
+    # "diversify" is caught by the allocation gate instead; either refusal is fine.
+    decision = classify_intent("Should we diversify now?")
+    assert decision.blocked is True
+    assert decision.query_class in (QueryClass.ADVICE, QueryClass.ALLOCATION)
+
+
 def test_blocks_performance():
     for sample in (
         "Compare 3-year returns of large-cap and flexi-cap",

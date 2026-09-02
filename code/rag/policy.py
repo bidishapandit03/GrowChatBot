@@ -84,6 +84,26 @@ ADVICE_PHRASES = (
     "invest more",
 )
 
+# General first-person/opinion-decision frames. These ask for a personal
+# recommendation or opinion ("Should I go out?", "Is it a good idea to...?"),
+# which the facts-only assistant never provides. They are checked only after the
+# more specific and factual-safe patterns so a genuine factual lookup is never
+# misread (e.g. "What should I know about..." is not covered here).
+OPINION_FRAMES = (
+    re.compile(r"\bshould\s+(?:i|we|you)\b", re.IGNORECASE),
+    re.compile(r"\bwhat\s+should\s+(?:i|we)\s+do\b", re.IGNORECASE),
+    re.compile(r"\bdo\s+you\s+think\b", re.IGNORECASE),
+    re.compile(r"\bwould\s+you\s+recommend\b", re.IGNORECASE),
+    re.compile(r"\bwould\s+you\s+(?:buy|sell|invest|hold)\b", re.IGNORECASE),
+    re.compile(r"\bis\s+it\s+a\s+good\s+idea\b", re.IGNORECASE),
+    re.compile(r"\bgood\s+idea\s+to\b", re.IGNORECASE),
+    re.compile(r"\bworth\s+(?:it|doing|buying|investing)\b", re.IGNORECASE),
+    re.compile(r"\bwhat\s+should\s+i\s+invest\b", re.IGNORECASE),
+    re.compile(r"\bshould\s+i\s+go\b", re.IGNORECASE),
+    re.compile(r"\bcan\s+you\s+advise\b", re.IGNORECASE),
+    re.compile(r"\bcan\s+you\s+recommend\b", re.IGNORECASE),
+)
+
 PERFORMANCE_PHRASES = (
     "returns",
     "return",
@@ -220,6 +240,10 @@ def classify_intent(question: str) -> PolicyDecision:
     for phrase in ACCOUNT_PHRASES:
         if phrase in lowered:
             return PolicyDecision(QueryClass.ACCOUNT_SUPPORT, True, REFUSAL_MESSAGES[QueryClass.ACCOUNT_SUPPORT])
+
+    for pattern in OPINION_FRAMES:
+        if pattern.search(lowered):
+            return PolicyDecision(QueryClass.ADVICE, True, REFUSAL_MESSAGES[QueryClass.ADVICE])
 
     return PolicyDecision(QueryClass.FACTUAL, False)
 
