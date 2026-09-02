@@ -20,6 +20,8 @@ import streamlit as st
 
 try:
     from code.config import APPROVED_SOURCES
+    from code.ingestion.embedder import EmbeddingError, get_embedder
+    from code.ingestion.indexer import ChromaVectorStore
     from code.rag.pipeline import answer
 except ModuleNotFoundError:
     # ``streamlit run`` (unlike ``python -m``) can resolve the ``code`` package to
@@ -27,6 +29,8 @@ except ModuleNotFoundError:
     if str(_PROJECT_ROOT) not in sys.path:
         sys.path.insert(0, str(_PROJECT_ROOT))
     from code.config import APPROVED_SOURCES
+    from code.ingestion.embedder import EmbeddingError, get_embedder
+    from code.ingestion.indexer import ChromaVectorStore
     from code.rag.pipeline import answer
 
 PAGE_TITLE = "HDFC Mutual Fund Facts Assistant"
@@ -107,6 +111,31 @@ def _init_state() -> None:
         st.session_state.busy = False
 
 
+def _warmup() -> None:
+    """Load the embedding model and open ChromaDB once at startup.
+
+    The embedding model is loaded lazily inside the retriever on the first query.
+    On a free-tier host that cold start can exceed the client timeout and make the
+    first question appear to hang. Loading it here (at app boot, before any user
+    message) moves that cost out of the request path. Failures are logged, not
+    fatal: the normal pipeline fallbacks still apply.
+    """
+    benchmark = __import__("time").time
+    started = benchmark()
+    try:
+        get_embedder()
+    except EmbeddingError as exc:
+        logging.getLogger("ui").warning("embedding model warm-up failed: %s", exc)
+    try:
+        chunk_count = ChromaVectorStore().count()
+    except Exception as exc:
+        logging.getLogger("ui").warning("chroma warm-up failed: %s", exc)
+        chunk_count = -1
+    logging.getLogger("ui").info(
+        "warm-up complete in %.1fs (chunks=%s)", benchmark() - started, chunk_count
+    )
+
+
 def _inject_styles() -> None:
     st.markdown(
         f"""
@@ -136,6 +165,7 @@ def main() -> None:
     )
     _inject_styles()
     _init_state()
+    _warmup()
 
     st.title(PAGE_TITLE)
     st.caption(WELCOME)
