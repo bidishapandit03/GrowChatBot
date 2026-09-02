@@ -223,3 +223,19 @@ class Retriever:
 
     def _resolve_mention(self, question: str) -> ResolvedFund | None:
         return resolve_fund(question)
+
+    def raw_top(self, question: str) -> tuple[ResolvedFund | None, list[EvidenceRow]]:
+        """Resolve the fund and return the top-k evidence rows WITHOUT a threshold.
+
+        Used only by the Phase 6 calibration tool, which needs distances below the
+        set threshold to separate eligible fact matches from absent facts.
+        """
+        fund = resolve_fund(question)
+        if fund is None:
+            return fund, []
+        try:
+            vector = self._embed_fn(question)
+        except EmbeddingError:
+            return fund, []
+        rows = self._get_store().query(vector, n_results=self._top_k, where={"canonical_url": fund.canonical_url})
+        return fund, [EvidenceRow.from_query_row(row) for row in rows]

@@ -17,7 +17,7 @@ from code.rag.pipeline import (
 )
 from code.rag.prompt import build_messages, evidence_freshness
 from code.rag.retriever import DECISION_FOUND, DECISION_NOT_FOUND, Retriever
-from code.rag.validator import ValidationError, ValidatedAnswer, allowed_urls, count_sentences, validate_answer
+from code.rag.validator import ValidationError, ValidatedAnswer, allowed_urls, count_sentences, unsupported_claims, validate_answer
 
 URL_A = "https://groww.in/mutual-funds/hdfc-large-cap-fund-direct-growth"
 OTHER_URL = "https://groww.in/mutual-funds/hdfc-small-cap-fund-direct-growth"
@@ -80,10 +80,65 @@ class TestValidator:
     def test_valid_answer_passes(self):
         valid = validate_answer(
             {"answer": "The expense ratio is 0.55%.", "source": URL_A, "last_updated": "2026-08-30"},
-            [type("E", (), {"ingested_at": "2026-08-30T06:24:47Z"})()],
+            [type("E", (), {"ingested_at": "2026-08-30T06:24:47Z",
+                            "chunk_text": "Expense ratio: 0.55%", "fund_name": "HDFC Large Cap Fund"})()],
         )
         assert isinstance(valid, ValidatedAnswer)
         assert valid.source == URL_A
+
+    def test_fabricated_entity_rejected(self):
+        with pytest.raises(ValidationError):
+            validate_answer(
+                {"answer": "The expense ratio is 0.55% for HDFC Bank.", "source": URL_A, "last_updated": "2026-08-30"},
+                [type("E", (), {"ingested_at": "2026-08-30T06:24:47Z",
+                                "chunk_text": "Expense ratio: 0.55%", "fund_name": "HDFC Large Cap Fund"})()],
+            )
+
+    def test_fabricated_numeric_value_rejected(self):
+        with pytest.raises(ValidationError):
+            validate_answer(
+                {"answer": "The expense ratio is 9.99%.", "source": URL_A, "last_updated": "2026-08-30"},
+                [type("E", (), {"ingested_at": "2026-08-30T06:24:47Z",
+                                "chunk_text": "Expense ratio: 0.55%", "fund_name": "HDFC Large Cap Fund"})()],
+            )
+
+    def test_visible_page_text_cannot_support_a_claim(self):
+        # "HDFC Bank" exists only in the noisy visible-page carousel, so the
+        # fabricated assertion must be rejected even though the token is on-page.
+        with pytest.raises(ValidationError):
+            validate_answer(
+                {"answer": "The custodian is HDFC Bank.", "source": URL_A, "last_updated": "2026-08-30"},
+                [
+                    type("E", (), {"ingested_at": "2026-08-30T06:24:47Z",
+                                   "chunk_text": "Expense ratio: 0.55%", "fund_name": "HDFC Large Cap Fund"})(),
+                    type("E", (), {"ingested_at": "2026-08-30T06:24:47Z", "section_heading": "Visible page text",
+                                   "chunk_text": "Compare HDFC Bank HDFC Large Cap Mutual Fund", "fund_name": "HDFC Large Cap Fund"})(),
+                ],
+            )
+
+    def test_structured_section_supports_a_claim(self):
+        valid = validate_answer(
+            {"answer": "The scheme is managed by HDFC Large Cap Fund Direct Growth.", "source": URL_A,
+             "last_updated": "2026-08-30"},
+            [type("E", (), {"ingested_at": "2026-08-30T06:24:47Z", "section_heading": "Overview",
+                            "chunk_text": "Scheme name: HDFC Large Cap Fund Direct Growth",
+                            "fund_name": "HDFC Large Cap Fund"})()],
+        )
+        assert isinstance(valid, ValidatedAnswer)
+
+    def test_unsupported_claims_rejects_all_when_no_structured_evidence(self):
+        # Fail closed: without a structured row there is no ground truth, so every
+        # claim is unsupported.
+        assert "hdfcbank" in unsupported_claims("The custodian is HDFC Bank.", [])
+
+    def test_unsupported_claims_finds_smuggled_value(self):
+        rows = [type("E", (), {"chunk_text": "Expense ratio: 0.55%", "fund_name": "HDFC Large Cap Fund"})()]
+        missing = unsupported_claims("The expense ratio is 0.55% and lock-in is 3 years.", rows)
+        assert missing == ["3"]
+
+    def test_claim_support_normalizes_rupee_figures(self):
+        rows = [type("E", (), {"chunk_text": "AUM: \u20b9107,765.65 Cr", "fund_name": "HDFC Hybrid Fund"})()]
+        assert unsupported_claims("Its AUM is \u20b9107,765.65 Cr.", rows) == []
 
     def test_four_sentences_rejected(self):
         text = "One fact. Two facts. Three facts. Four facts."

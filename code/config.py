@@ -57,9 +57,28 @@ HF_CACHE_DIR = ROOT_DIR / ".hfcache"
 CHUNK_SIZE_TOKENS = (300, 500)
 CHUNK_OVERLAP_TOKENS = (50, 75)
 TOP_K = 4
-# Working default until Phase 6 calibration on the labelled retrieval set. Cosine
-# distance (0 = identical); known-fact matches cluster ~0.20-0.55 for this corpus.
-RELEVANCE_THRESHOLD = 0.55
+
+# Relevance threshold: a cosine distance (0 = identical). The default lives here and
+# is overridden at runtime by data/threshold.json when the Phase 6 calibration tool
+# writes one. The labelled facts lie at 0.25-0.45, but real users phrase informally
+# (e.g. "minimum sip for hdfc elss?" at ~0.55 vs the formal dataset phrasing at
+# ~0.39), so the operating point sits at 0.55. Unsafe acceptance is not a retrieval
+# concern here: the grounded-answer validator rejects fabricated claims end-to-end.
+_DEFAULT_RELEVANCE_THRESHOLD = 0.55
+THRESHOLD_FILE = DATA_DIR / "threshold.json"
+
+
+def _relevance_threshold() -> float:
+    try:
+        import json
+
+        with THRESHOLD_FILE.open(encoding="utf-8") as handle:
+            return float(json.load(handle)["relevance_threshold"])
+    except (OSError, ValueError, KeyError):
+        return _DEFAULT_RELEVANCE_THRESHOLD
+
+
+RELEVANCE_THRESHOLD = _relevance_threshold()
 CHROMA_COLLECTION_NAME = "hdfc_groww_funds"
 
 MISTRAL_MODEL = "mistral-small-latest"
