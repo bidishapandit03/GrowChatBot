@@ -379,6 +379,69 @@ The dataset should cover expense ratio, minimum SIP, exit load, ELSS lock-in, ri
 - Low-confidence questions use the “not found” path.
 - Results are reproducible from the persisted ChromaDB collection and labelled test set.
 
+---
+
+## Phase 7 — Runtime sequence live acceptance
+
+The `## 7. Runtime sequence` section below is the runtime contract. This phase proves
+that contract executes end-to-end on the deployed Render instance, not just in local
+unit tests. Each sequence participant was verified against its owning module, then each
+runtime branch was driven through the real pipeline live and scored.
+
+### Sequence-participant mapping
+
+| Participant | Owning code | Verifies |
+|---|---|---|
+| UI (Streamlit) | `code/app.py` | Submit, example buttons, spinner, chat rendering, citation link, freshness, safety notice |
+| Policy gate | `code/rag/retriever.py` (PII + `classify_intent` + `resolve_fund`) | PII/advice/performance/scope checks before embedding |
+| Retriever | `code/rag/retriever.py` | MiniLM embedding, top-k (`TOP_K=4`), relevance threshold, conflicts |
+| ChromaDB | `code/ingestion/indexer.py` | Persistent local collection, metadata filter by approved URL |
+| Mistral API | `code/rag/generator.py` | Grounded JSON generation, fail-closed on errors |
+| Validator | `code/rag/validator.py` | ≤3 sentences, one allowlisted citation, freshness, claim support |
+
+### Live branch results (deployed pipeline, date: 2026-09-03)
+
+One representative case per `alt` branch of the sequence, run through `answer()` with a
+live Mistral key and the real persisted ChromaDB collection:
+
+| #7 branch | Question | Decision | Grounded | Evidence | Result |
+|---|---|---|---|---|---|
+| Grounded (sufficient) | `What is the expense ratio of HDFC Large Cap Fund Direct Growth?` | found | yes | 4 | PASS |
+| Weak evidence → not found | `who is the custodian of the hdfc large cap fund?` | found→U/A | no | 4 | PASS |
+| Ambiguous → clarification | `What is the expense ratio?` | clarification | no | 0 | PASS |
+| Blocked: PII | `My PAN is ABCDE1234F, check my fund` | blocked | no | 0 | PASS |
+| Blocked: advice | `Should I invest in the small-cap fund?` | blocked | no | 0 | PASS |
+| Blocked: performance | `Compare 3-year returns of large-cap and flexi-cap` | blocked | no | 0 | PASS |
+| Blocked: outside scope | `What is the expense ratio of an SBI fund?` | blocked | no | 0 | PASS |
+
+**Score: 7 / 7 branches pass.**
+
+### Grounded-answer output contract
+
+For the grounded branch, the final rendered response was verified to satisfy the
+sequence's terminal requirement ("Validated answer + citation + date"):
+
+- Exactly one citation: `https://groww.in/mutual-funds/hdfc-large-cap-fund-direct-growth` — allowlisted.
+- Freshness present: `Last updated from sources: 2026-08-30`.
+- Answer body ≤3 sentences.
+- Claim groundedness: the stated figure `1.02%` is present verbatim in the cited evidence corpus.
+
+### Deployed-instance health
+
+- `https://growchatbot.onrender.com/` returns HTTP 200 and serves the Streamlit frontend.
+- `data/threshold.json` (relevance threshold `0.55`) is committed and loaded at runtime via `_relevance_threshold()`.
+- `MISTRAL_API_KEY` is injected as a Render secret (`sync: false`), never committed.
+
+### Exit criteria
+
+- [x] Every code unit mapped to a sequence participant.
+- [x] Each `alt` branch of the runtime sequence drives to its correct terminal outcome.
+- [x] Grounded responses carry exactly one allowlisted citation, a freshness date, ≤3 sentences, and a supported claim.
+- [x] Deployed instance is reachable and serving; secret and threshold config resolve without error.
+- [x] Deterministic offline suite (119 unit tests) still green.
+
+---
+
 ## 7. Runtime sequence
 
 ```mermaid

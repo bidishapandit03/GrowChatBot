@@ -63,16 +63,6 @@ def _link_sources(text: str) -> str:
     return _SOURCE_LINE.sub(_replace, text)
 
 
-def _evidence_text(result) -> str:
-    lines = []
-    for row in result.evidence:
-        lines.append(
-            f"[{row.fund_category}/{row.section_heading}] "
-            f"(distance {row.distance:.3f})\n{row.canonical_url}\n{row.chunk_text}"
-        )
-    return "\n\n---\n\n".join(lines)
-
-
 def _render_message(entry: dict) -> None:
     if entry["role"] == "user":
         with st.chat_message("user"):
@@ -81,9 +71,6 @@ def _render_message(entry: dict) -> None:
 
     with st.chat_message("assistant"):
         st.markdown(_link_sources(entry["answer"]))
-        if entry.get("evidence"):
-            with st.expander("Evidence (retrieved chunks)"):
-                st.markdown(_evidence_text(entry["result"]))
         if entry.get("conflicts"):
             st.error("The approved pages contain conflicting values; no single figure was chosen.")
 
