@@ -25,8 +25,20 @@ class GenerationError(RuntimeError):
 
 
 def get_api_key() -> str | None:
-    """Return the Mistral API key, preferring the environment over a local .env file."""
-    return os.environ.get(MISTRAL_API_KEY_ENV) or None
+    """Return the Mistral API key, preferring the environment over a local .env
+    file, then over Streamlit secrets (used when running on Streamlit Cloud,
+    where secrets are exposed via ``st.secrets`` rather than ``os.environ``)."""
+    env_key = os.environ.get(MISTRAL_API_KEY_ENV)
+    if env_key:
+        return env_key
+    try:
+        import streamlit as st
+
+        secret = st.secrets.get(MISTRAL_API_KEY_ENV)
+    except Exception:
+        # No Streamlit runtime or no key configured there.
+        secret = None
+    return secret if secret else None
 
 
 def strip_json_fences(content: str) -> str:

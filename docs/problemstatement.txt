@@ -1,0 +1,58 @@
+
+
+Website - https://groww.in/
+AMC - HDFC 
+
+5 Pages on which the RAG will be built 
+Large-cap — HDFC Large Cap Fund Direct Growth
+1.  https://groww.in/mutual-funds/hdfc-large-cap-fund-direct-growth
+Flexi-cap — HDFC Flexi Cap Fund Direct Growth (note: Groww still uses the legacy "equity fund" slug from the fund's old name)
+ https://groww.in/mutual-funds/hdfc-equity-fund-direct-growth
+ELSS — HDFC ELSS Tax Saver Fund Direct Plan Growth
+ https://groww.in/mutual-funds/hdfc-elss-tax-saver-fund-direct-plan-growth
+Small-cap — HDFC Small Cap Fund Direct Growth
+ https://groww.in/mutual-funds/hdfc-small-cap-fund-direct-growth
+Hybrid — HDFC Balanced Advantage Fund Direct Growth
+ https://groww.in/mutual-funds/hdfc-balanced-advantage-fund-direct-growth
+
+Scope your corpus: – only and only above link nothing beyond that. 
+
+FAQ assistant (working prototype):
+Answers factual queries only (e.g., “Expense ratio of ?”, “ELSS lock-in?”, “Minimum SIP?”, “Exit load?”, “Riskometer/benchmark?”, “How to download capital-gains statement?”).
+Shows one clear citation link in every answer.
+Refuses opinionated/portfolio questions (e.g., “Should I buy/sell?”) with a polite, facts-only message and a relevant educational link.
+Tiny UI: welcome line + 3 example questions and a note: “Facts-only. No investment advice.”
+Key constraints
+**Public sources only.** No screenshots of the app back-end; no third-party blogs as sources.
+**No PII.** Do not accept/store PAN, Aadhaar, account numbers, OTPs, emails, or phone numbers.
+**No performance claims.** Don’t compute/compare returns; link to the official factsheet if asked.
+**Clarity & transparency.** Keep answers ≤3 sentences; add “Last updated from sources: ”.
+
+
+What are we building : A RAG Based chatbot + it a protypes/hobby project to test RAG. 
+RAG :- 
+Data Ingestion: 
+Uploading Document 
+Chunking 
+Use as per the data above ( 5 URLs give) 
+Embedding 
+Free and light weight embedding model
+sentence-transformers/all-MiniLM-L6-v2 ( huggingface) 
+Storing in the vector space 
+ChormaDB 
+
+
+Data retrieval 
+Question 
+Embedding 
+Same 
+Find the right chunk from vector space 
+LLM Prompt generation
+Which LLM 
+Mistral API Key 
+Answer generation 
+UI 
+Simple Basic UI 
+Color - Groww website color
+Streamlit 
+Add Edge Case Testing 
