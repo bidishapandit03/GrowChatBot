@@ -14,6 +14,10 @@ __pycache__/
 .mypy_cache/
 
 # Generated corpus and index (keep folder placeholders)
+#
+# data/chroma/ and .hfcache/ are COMMITTED so deployed hosts with an ephemeral
+# filesystem (Render free, Streamlit Community Cloud) can serve the built vector
+# index and the offline MiniLM model cache without a build step at runtime.
 data/raw/html/*
 !data/raw/html/.gitkeep
 data/raw/documents/*
@@ -22,9 +26,4 @@ data/chunks/*
 !data/chunks/.gitkeep
 data/embeddings/*
 !data/embeddings/.gitkeep
-data/chroma/*
-!data/chroma/.gitkeep
 !data/**/.gitkeep
-
-# Hugging Face model cache (built at deploy time, never committed)
-.hfcache/
