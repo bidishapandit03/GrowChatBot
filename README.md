@@ -79,7 +79,9 @@ python -m code.evaluate --live             # end-to-end unsupported-claim check 
 python -m code.evaluate --calibrate        # pick a relevance threshold -> data/threshold.json
 ```
 
-## Deploy: Streamlit Community Cloud
+## Deploy: Streamlit Community Cloud (current)
+
+This app is deployed on **Streamlit Community Cloud**.
 
 1. Push this repo to GitHub.
 2. Go to https://share.streamlit.io -> **Create app** -> the `GrowChatBot` repo,
@@ -93,15 +95,23 @@ python -m code.evaluate --calibrate        # pick a relevance threshold -> data/
    (Real `secrets.toml` is gitignored; see `.streamlit/secrets.toml.example`.)
 4. Deploy and open your live URL.
 
+### Re-deploying after a change
+
+Streamlit Cloud does **not** auto-pull every push by default. After pushing new code,
+open the app on **share.streamlit.io**, use the app card's overflow menu
+(`⋮` -> **Rerun** / **Reboot**), or switch the deployed branch away and back. To make
+it automatic, enable auto-deploy in the app's **Settings**.
+
 > Free-tier caveat: apps sleep after ~72h idle and cold-start on the next visit, so
 > the first load after sleep is slow (it loads the ~86MB MiniLM model from the
 > committed cache — it will not re-download). Subsequent questions are fast.
 
-## Deploy: Render
+## Deploy: Render (alternative)
 
-`render.yaml` + `build.sh`/`start.sh` are included. In the Render dashboard use
-**Manual Deploy -> Deploy latest commit** and set `MISTRAL_API_KEY` as a secret
-(`sync: false`). Free instances also sleep on idle with the same cold-start caveat.
+`render.yaml` + `build.sh`/`start.sh` are still included as an alternative host. In
+the Render dashboard use **Manual Deploy -> Deploy latest commit** and set
+`MISTRAL_API_KEY` as a secret (`sync: false`). Free instances also sleep on idle with
+the same cold-start caveat.
 
 ## Notes
 
