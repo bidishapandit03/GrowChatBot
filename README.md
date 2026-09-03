@@ -50,6 +50,11 @@ python -m code.ingestion --chunk    # Phase 2: chunk the cleaned documents
 python -m code.ingestion --index    # Phase 4: embed + upsert into ChromaDB
 ```
 
+Phase 3 (embedding, `python -m code.ingestion --embed`) is optional: `--index` already
+embeds the chunks as part of upsert. The standalone `--embed` step only *exports* the
+vectors to `data/embeddings/` if you want that artifact; it is not required to run the
+app.
+
 The ChromaDB index and MiniLM model cache are committed so hosts with an ephemeral
 filesystem (Streamlit Community Cloud, Render free) can run without a build step.
 
